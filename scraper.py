@@ -1,4 +1,7 @@
 import requests
+from bs4 import BeautifulSoup
+import os
+from urllib.parse import urljoin
 
 def get_book_links():
     # URL for the Gutenberg Index API
@@ -36,15 +39,52 @@ def get_book_links():
         print(f'Error: {e}')
         return {}
 
+def download_text_files(url, output_dir):
+    print(f"Downloading text files from: {url}")
+    # Send a GET request to the URL
+    response = requests.get(url)
+    
+    # Check if the request was successful (status code 200)
+    if response.status_code == 200:
+        # Parse the HTML content
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Find all anchor tags
+        links = soup.find_all('a')
+        
+        # Create the output directory if it doesn't exist
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        
+        # Download text files with ASCII encoding
+        for link in links:
+            href = link.get('href')
+            if href.endswith('.txt') and 'charset=us-ascii' in href:
+                file_url = urljoin(url, href)
+                file_name = os.path.join(output_dir, os.path.basename(href))
+                with open(file_name, 'wb') as file:
+                    file.write(requests.get(file_url).content)
+                print(f"Downloaded: {file_name}")
+
 if __name__ == '__main__':
     book_links = get_book_links()
+    downloaded_files = False  # Flag to indicate if any files were downloaded
     
     if book_links:
         print("Links for specified content types:")
         for book_id, links in book_links.items():
-            print(f"Book ID: {book_id}")
-            print(f"Ascii Link: {links['ascii']}")
-            print(f"UTF-8 Link: {links['utf8']}")
-            print()
+            if links['ascii']:  # Ensure there is a link before attempting to download
+                url = links['ascii']
+                output_dir = r'C:\Users\aanya\OneDrive\Documents\GitHub\QuantumAIresearch\TXT'
+                download_text_files(url, output_dir)
+                
+                # Check if any files were downloaded
+                if os.listdir(output_dir):
+                    downloaded_files = True
     else:
         print("No book links found.")
+    
+    if downloaded_files:
+        print("Files were downloaded successfully.")
+    else:
+        print("No files were downloaded.")
