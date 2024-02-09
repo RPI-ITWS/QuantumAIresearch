@@ -40,38 +40,25 @@ def get_book_links():
         print(f'Error: {e}')
         return {}
 
-def download_text_files(url, output_dir):
-    print(f"Downloading text files from: {url}")
-    # Send a GET request to the URL with streaming enabled
-    with requests.get(url, stream=True) as response:
-        # Check if the request was successful (status code 200)
-        if response.status_code == 200:
-            # Parse the HTML content
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            # Find all anchor tags
-            links = soup.find_all('a')
-            
-            # Create the output directory if it doesn't exist
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-            
-            # Download text files with ASCII encoding
-            for link in links:
-                href = link.get('href')
-                if href and href.endswith('.txt') and 'charset=us-ascii' in href:
-                    file_url = urljoin(url, href)
-                    file_name = os.path.join(output_dir, os.path.basename(href))
-                    
-                    # Stream download the file content
-                    with requests.get(file_url, stream=True) as file_response:
-                        with open(file_name, 'wb') as file:
-                            for chunk in file_response.iter_content(chunk_size=8192):
-                                file.write(chunk)
-                    print(f"Downloaded: {file_name}")
-        else:
-            print(f"Failed to download files from {url}. Status Code: {response.status_code}")
+def download_text_file(url, output_dir):
+    # Ensure the URL is a direct link to a text file
+    if url:
+        print(f"Downloading text file from: {url}")
+        file_name = os.path.join(output_dir, url.split('/')[-1])
 
+        # Stream download the file content
+        with requests.get(url, stream=True) as file_response:
+            if file_response.status_code == 200:
+                # Create the output directory if it doesn't exist
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+
+                with open(file_name, 'wb') as file:
+                    for chunk in file_response.iter_content(chunk_size=8192):
+                        file.write(chunk)
+                print(f"Downloaded: {file_name}")
+            else:
+                print(f"Failed to download file from {url}. Status Code: {file_response.status_code}")
 if __name__ == '__main__':
     book_links = get_book_links()
     downloaded_files = False  # Flag to indicate if any files were downloaded
@@ -82,7 +69,7 @@ if __name__ == '__main__':
             if links['ascii']:  # Ensure there is a link before attempting to download
                 url = links['ascii']
                 output_dir = r'C:\Users\aanya\TEXTQTM'
-                download_text_files(url, output_dir)
+                download_text_file(url, output_dir)
                 
                 # Check if any files were downloaded
                 if os.listdir(output_dir):
